@@ -3,6 +3,7 @@ const cassandraClient = require("./cassandra-client");
 const moment = require("moment");
 const { cyan, green, grey } = require("kleur");
 const os = require("os");
+const utils = require("./utils");
 
 //load environment varialbles
 const result = require("dotenv").config();
@@ -15,6 +16,15 @@ const app = express();
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
+
+/**
+ * test file reader
+ */
+
+utils.readFileLineByLine("utils/test.txt", (line) => {
+  //process line
+  console.log(line);
+});
 
 /**
  * test queries
