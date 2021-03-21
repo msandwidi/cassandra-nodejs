@@ -21,7 +21,7 @@ app.set("trust proxy", 1);
  * test file reader
  */
 
-utils.readFileLineByLine("utils/test.txt", (line) => {
+utils.readFileLineByLine("input-data/test.txt", (line) => {
   //process line
   console.log(line);
 });
