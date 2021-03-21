@@ -4,6 +4,7 @@ const moment = require("moment");
 const { cyan, green, grey } = require("kleur");
 const os = require("os");
 const utils = require("./utils");
+const queries = require("./cassandra-queries");
 
 //load environment varialbles
 const result = require("dotenv").config();
@@ -26,14 +27,9 @@ utils.readFileLineByLine("input-data/test.txt", (line) => {
   console.log(line);
 });
 
-/**
- * test queries
- */
-const query =
-  "SELECT item_id, name, price_p_item FROM fruit_stock WHERE item_id = ?";
-
+//test query
 cassandraClient
-  .execute(query, ["b1"])
+  .execute(queries.test, ["b1"])
   .then((result) => console.log("Item with id %s", result.rows[0]));
 
 app.listen(PORT, () => {
