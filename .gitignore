@@ -1,3 +1,4 @@
 .env
 input-data
 node_modules
+results/

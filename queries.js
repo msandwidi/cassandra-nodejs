@@ -28,8 +28,8 @@ cassandraClient
  */
 app.get("/null-gender-songs", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT * FROM user_song_ratings.song_info WHERE gender_name = ?",
-    [null],
+    "SELECT * FROM user_song_ratings.song_info WHERE gender_name = ? ALLOW FILTERING ",
+    ["NULL"],
     { prepare: true }
   );
   res.status(200).json({ success: true, result });
@@ -41,7 +41,7 @@ app.get("/null-gender-songs", async (req, res) => {
  */
 app.get("/unknown-gender-songs", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT * FROM user_song_ratings.song_info WHERE gender_id = ?",
+    "SELECT * FROM user_song_ratings.song_info WHERE gender_id = ? ALLOW FILTERING",
     [0],
     { prepare: true }
   );
@@ -54,7 +54,7 @@ app.get("/unknown-gender-songs", async (req, res) => {
  */
 app.get("/count-ratings", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT COUNT (*) FROM user_song_ratings.song_info",
+    "SELECT COUNT (*) FROM user_song_ratings.song_info ALLOW FILTERING",
     { prepare: true }
   );
   res.status(200).json({ success: true, result });
@@ -64,10 +64,10 @@ app.get("/count-ratings", async (req, res) => {
  * count soungs with rating of 1
  * easy question 4
  */
-app.get("/count-ratings", async (req, res) => {
+app.get("/count-ratings-of-1-star", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT COUNT (*) FROM user_song_ratings.song_info WHERE rating = ?",
-    [0],
+    "SELECT COUNT (*) FROM user_song_ratings.song_info WHERE rating = ? ALLOW FILTERING",
+    [1],
     { prepare: true }
   );
   res.status(200).json({ success: true, result });
@@ -79,8 +79,18 @@ app.get("/count-ratings", async (req, res) => {
  */
 app.get("/user-most-liked-song/:id", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT max(user_id) FROM user_song_ratings.song_info WHERE user_id = ?",
+    "SELECT max(song_id) FROM user_song_ratings.song_info WHERE user_id = ? ALLOW FILTERING",
     [req.params.id],
+    { prepare: true }
+  );
+  res.status(200).json({ success: true, result });
+});
+
+///find the details of the most like song of a user
+app.get("/user-most-liked-song-details/:user/:song", async (req, res) => {
+  const result = await cassandraClient.execute(
+    "SELECT * FROM user_song_ratings.song_info WHERE user_id = ? AND song_id = ? ALLOW FILTERING",
+    [req.params.user, req.params.song],
     { prepare: true }
   );
   res.status(200).json({ success: true, result });
@@ -90,9 +100,9 @@ app.get("/user-most-liked-song/:id", async (req, res) => {
  * find number of times a song was rated
  * moderate question 2
  */
-app.get("/number-or-song-ratings/:id", async (req, res) => {
+app.get("/number-of-ratings-of-a-song/:id", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT COUNT (*) FROM user_song_ratings.song_info WHERE song_id = ?",
+    "SELECT COUNT (*) FROM user_song_ratings.song_info WHERE song_id = ? ALLOW FILTERING",
     [req.params.id],
     { prepare: true }
   );
@@ -105,7 +115,7 @@ app.get("/number-or-song-ratings/:id", async (req, res) => {
  */
 app.get("/average-rating-of-gender/:id", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT avg(user_id) FROM user_song_ratings.song_info WHERE gender_id = ?",
+    "SELECT avg(rating) FROM user_song_ratings.song_info WHERE gender_id = ? ALLOW FILTERING",
     [req.params.id],
     { prepare: true }
   );
@@ -118,7 +128,7 @@ app.get("/average-rating-of-gender/:id", async (req, res) => {
  */
 app.get("/group-by-interests", async (req, res) => {
   const result = await cassandraClient.execute(
-    "SELECT * FROM song_info GROUP BY genre_id",
+    "SELECT * FROM song_info GROUP BY genre_id ALLOW FILTERING",
     { prepare: true }
   );
   res.status(200).json({ success: true, result });

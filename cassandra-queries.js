@@ -2,7 +2,7 @@ let queries = {};
 
 //test query
 queries.test =
-  "SELECT item_id, name, price_p_item FROM fruit_stock WHERE item_id = ?";
+  "SELECT item_id, name, price_p_item FROM grocery.fruit_stock WHERE item_id = ?";
 
 /**
  * songs with no gender

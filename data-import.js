@@ -40,84 +40,112 @@ app.get("/grocery-select", async (req, res) => {
 });
 
 /**
- * count songs
- */
-app.get("/count-songs", async (req, res) => {
-  const result = await cassandraClient.execute(
-    "SELECT COUNT (*) FROM user_song_ratings.song_info",
-    { prepare: true }
-  );
-  res.status(200).json({ success: true, result });
-});
-
-/**
- * test select song
- */
-app.get("/test-select-song/:id", async (req, res) => {
-  console.log(req.params.id);
-
-  const id = parseInt(req.params.id);
-
-  const result = await cassandraClient.execute(
-    "SELECT user_id, song_id, rating FROM user_song_ratings.song_info where user_id = ? ALLOW FILTERING",
-    [id],
-    { prepare: true, hints: ["int"] }
-  );
-  res.status(200).json({ success: true, result });
-});
-
-/**
  * insert all songs in the database
  * change between files to import data
  * change column properties to match csv columns length
  */
 app.post("/insert-all-songs", async (req, res) => {
-  //read the csv file
-  const json = await parseCsvToJson("input-data/dataset/song-attributes.csv");
+  //read the csv files
+  const songList = await parseCsvToJson(
+    "input-data/dataset/test_0.csv",
+    ["user_id", "song_id", "rating"],
+    0
+  );
+  const attrList = await parseCsvToJson(
+    "input-data/dataset/song-attributes.csv",
+    ["song_id", "album_id", "artist_id", "gender_id"],
+    0
+  );
+  const genderList = await parseCsvToJson(
+    "input-data/dataset/genre-hierarchy.csv",
+    ["gender_id", "parent_gender_id", "level", "gender_name"]
+  );
 
-  console.log(json.length, "lines");
+  console.log(songList.length, "songs");
+  console.log(attrList.length, "attributes");
+  console.log(genderList.length, "gender types");
 
   let queries = [];
 
   let selected = 0;
+  let counter = 0;
 
-  for (let i = 0; i < json.length; i++) {
+  for (let i = 0; i < songList.length; i++) {
+    //denormailze data
+    let song = songList[i];
+
+    //find attributes
+    let songAttrs = attrList.find((a) => a.song_id === song.song_id);
+
+    //find song gender
+    if (songAttrs) {
+      let songGender = genderList.find(
+        (g) => g.gender_id === songAttrs.gender_id
+      );
+
+      //merge song data
+
+      //add attributes
+      song = { ...song, ...songAttrs };
+
+      if (songGender) {
+        //add gender attributes
+        song = { ...song, ...songGender };
+      }
+    }
+
     //prepare record query
     let statement =
-      `INSERT INTO user_song_ratings.song_attributes (song_id, album_id,` +
-      ` artist_id, gender_id) VALUES (?, ?, ?, ?)`;
+      `INSERT INTO user_song_ratings.song_info (user_id, song_id, ` +
+      `rating, album_id, artist_id, gender_id, parent_gender_id, ` +
+      `gender_name, level) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     //console.log(typeof json[i]);
 
     let query = {
       query: statement,
       params: [
-        json[i].song_id,
-        json[i].album_id,
-        json[i].artist_id,
-        json[i].gender_id,
+        song.user_id,
+        song.song_id,
+        song.rating,
+        song.album_id,
+        song.artist_id,
+        song.gender_id,
+        song.parent_gender_id,
+        song.gender_name,
+        song.level,
       ],
     };
 
     ///add to batch queries
     queries.push(query);
     selected++;
+    counter++;
 
-    if (selected === 1000 || i === json.length) {
+    if (selected === 400 || i === songList.length) {
       console.log("running batch...");
       console.log("at", i, "th query items");
+      console.log("sample data", song);
 
-      //run batch
-      const result = await cassandraClient.batch(queries, { prepare: true });
-
+      try {
+        //run batch
+        await cassandraClient.batch(queries, { prepare: true });
+      } catch (error) {
+        console.log(error);
+      }
       //query result
-      console.log("query result", result);
+      //console.log("query result", result);
+
+      //write query result on a file
+      //await fs.writeFile(`./results//data_${i}.json`, JSON.stringify(result));
 
       //reset selected
       selected = 0;
       queries = [];
     }
   }
+
+  console.log("processed song ratings", counter);
 
   return res.status(200).json({ success: true, message: "working on it..." });
 });
@@ -135,9 +163,9 @@ module.exports = app;
  * read and parse csv file
  * @param {csv file path as string} filePath
  */
-const parseCsvToJson = async (filePath) => {
+const parseCsvToJson = async (filePath, columns, default_return) => {
   console.log("parsing csv to json");
-  return parseContent(await fs.readFile(filePath));
+  return parseContent(await fs.readFile(filePath), columns, default_return);
 };
 
 /**
@@ -145,7 +173,7 @@ const parseCsvToJson = async (filePath) => {
  * @param {content of the csv file} content
  * @return {array of records json objects}
  */
-const parseContent = async (contentBuffer) => {
+const parseContent = async (contentBuffer, columns, default_return) => {
   // Parse the CSV content
   //into an array of object
   return parse(contentBuffer, {
@@ -153,12 +181,16 @@ const parseContent = async (contentBuffer) => {
     delimiter: ",",
     trim: true, //trim contents
     from: 2, //skip the header of the file
-    columns: ["song_id", "album_id", "artist_id", "gender_id"],
+    columns,
     cast: function (value, context) {
-      if (parseInt(value) !== null && parseInt(value) !== undefined) {
+      if (
+        parseInt(value) !== null &&
+        parseInt(value) !== undefined &&
+        !Number.isNaN(parseInt(value))
+      ) {
         return parseInt(value);
       } else {
-        return 0;
+        return default_return || value;
       }
     },
   });

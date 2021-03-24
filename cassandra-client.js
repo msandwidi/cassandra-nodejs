@@ -5,7 +5,12 @@ const contactPoints = ["localhost"];
 const client = new cassandra.Client({
   contactPoints: contactPoints,
   localDataCenter: "datacenter1",
-  keyspace: "grocery",
+  keyspace: "user_song_ratings",
+  queryOptions: {
+    readTimeout: 200000,
+    keyspace: "user_song_ratings",
+    counter: true,
+  },
 });
 
 /*const query =

@@ -1,0 +1,5 @@
+#null gender songs
+SELECT json * FROM user_song_ratings.song_info WHERE gender_name = 'NULL' ALLOW FILTERING
+
+#unknown gender songs
+SELECT json * FROM user_song_ratings.song_info WHERE gender_id = 0 ALLOW FILTERING
