@@ -57,4 +57,9 @@ queries.findAverageRatingOfOneGender =
 queries.findUsersWithSimilarInterests =
   "SELECT * FROM songInfo GROUP BY genre_id";
 
+
+queries.insertSongInfo = (data)=>{
+  
+}
+
 module.exports = queries;
